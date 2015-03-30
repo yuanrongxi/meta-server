@@ -168,7 +168,7 @@ zhandle_t* zk_init(const char* zk_host)
 
 	//const char* host = "storm-supervisor-00:2181,storm-supervisor-01:2181,storm-supervisor-02:2181";	
 	zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
-	zk_handle = zookeeper_init(zk_host, zktest_watcher_g, ZK_TIMEOUT, 0, (void *)"storm core ui", 0);
+	zk_handle = zookeeper_init(zk_host, zktest_watcher_g, ZK_TIMEOUT, 0, (void *)"metaserver", 0);
 	if (zk_handle == NULL) {
 		log_fatal("init zookeeper failed, host = %s", zk_host);
 		zk_handle = NULL;
