@@ -38,6 +38,8 @@ void			close_config();
 
 void			print_config();
 
+int				load_zookeeper_host();
+
 #endif
 
 

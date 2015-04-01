@@ -13,8 +13,8 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="test">
-      <UniqueIdentifier>{8e18471d-b77c-41b3-93fc-5f8d88a064a2}</UniqueIdentifier>
+    <Filter Include="rpc">
+      <UniqueIdentifier>{a69ba828-f901-4648-9042-7456b212ca70}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -63,6 +63,15 @@
     <ClInclude Include="cell_zk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\rpc\cell_codec.h">
+      <Filter>rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\rpc\cell_msg.h">
+      <Filter>rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\rpc\meta_rpc.h">
+      <Filter>rpc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ae_poll.c">
@@ -74,20 +83,11 @@
     <ClCompile Include="cell_pool.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test\test_log.c">
-      <Filter>test</Filter>
-    </ClCompile>
-    <ClCompile Include="test\test_pool.c">
-      <Filter>test</Filter>
-    </ClCompile>
     <ClCompile Include="cell_log.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cell_codec.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="test\test_bin_stream.c">
-      <Filter>test</Filter>
     </ClCompile>
     <ClCompile Include="cell_msg.c">
       <Filter>Source Files</Filter>
@@ -97,9 +97,6 @@
     </ClCompile>
     <ClCompile Include="cell.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="test\test_client.c">
-      <Filter>test</Filter>
     </ClCompile>
     <ClCompile Include="db_helper.c">
       <Filter>Source Files</Filter>
@@ -118,6 +115,18 @@
     </ClCompile>
     <ClCompile Include="cell_zk.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\rpc\cell_codec.c">
+      <Filter>rpc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\rpc\cell_msg.c">
+      <Filter>rpc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\rpc\meta_rpc.c">
+      <Filter>rpc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\rpc\test.c">
+      <Filter>rpc</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

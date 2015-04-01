@@ -821,11 +821,37 @@ void disconnect_zookeeper()
 {
 	char path[1280];
 	sprintf(path, "/DFS/metaserver/hosts/%s", cell_config->name);
-
 	zk_delete_node(path);
 	zk_destroy();
 }
 
+void check_zookeeper()
+{
+	int rc = 0;
+	int count = 0;
+	char path[1280];
+	char value[VALUE_SIZE];
+
+	sprintf(path, "/DFS/metaserver/hosts/%s", cell_config->name);
+	sprintf(value, "%s:%d", cell_config->listen_ip, cell_config->listen_port);
+
+	while(daemon_run != 0){
+		if(count % 1000 == 0){ /*每10秒检查一次*/
+			count = 0;
+			rc = zk_set_node(path, value);
+			if(rc == ZCONNECTIONLOSS || rc == ZOPERATIONTIMEOUT){ /*连接可能断开了*/
+				zk_destroy();
+				/*重新从YCC载入配置zk地址*/
+				load_zookeeper_host();
+				/*再次发起zookeeper的连接*/
+				connect_zookeeper();
+			}
+		}
+
+		count ++;
+		usleep(10000);
+	}
+}
 
 int main(int argc, const char* argv[])
 {
@@ -857,7 +883,7 @@ int main(int argc, const char* argv[])
 
 	cell_init(cell_config->thread_n, cell_config->listen_port, cell_config->cache_size);
 
-	loop_run();
+	loop_run(check_zookeeper);
 
 	cell_destroy();
 	/*注销ZK*/

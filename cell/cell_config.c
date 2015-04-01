@@ -10,7 +10,18 @@
 #define atoll _atoi64
 #endif
 
+#define ENV_SIZE		64
+#define ENV_DOMAIN		256
+
 cell_conf_t* cell_config = NULL;
+
+/*YCC的env.ini文件内容*/
+typedef struct ycc_env_s
+{
+	char env[ENV_SIZE];		
+	char env_domain[ENV_DOMAIN];
+	int port;
+}ycc_env_t;
 
 typedef struct conf_item_s
 {
@@ -153,8 +164,6 @@ void load_config(const char* config_file)
 		}
 		else if(strcmp(item.key, "cache size") == 0)
 			cell_config->cache_size = atoll(item.value);
-		else if(strcmp(item.key, "zookeeper host") == 0)
-			strncpy(cell_config->zk_host, item.value, PATH_SIZE);
 		else if(strcmp(item.key, "db user") == 0)
 			strncpy(cell_config->user, item.value, VALUE_SIZE);
 		else if(strcmp(item.key, "db passwd") == 0)
@@ -180,6 +189,13 @@ void load_config(const char* config_file)
 		free(line);
 
 	fclose(fp);
+	/*从YCC读取zookeeper的地址*/
+	if(load_zookeeper_host() != 0){
+		free(cell_config);
+		cell_config = NULL;
+
+		exit(-1);
+	}
 }
 
 void close_config()
@@ -224,4 +240,75 @@ void print_config()
 	}
 	printf("\n\tdb port = %d\n", cell_config->db_port);
 }
+
+/*env配置文件*/
+#define ENV_INI_FILE "/var/www/webapps/config/env.ini"
+
+int load_zookeeper_host()
+{
+	char url[PATH_SIZE];
+
+	ycc_env_t env;
+
+	FILE* fp;
+	char* line = NULL;
+	size_t len;
+	size_t read;
+	conf_item_t item;
+
+	fp = fopen(ENV_INI_FILE, "r");
+	if(fp == NULL){
+		printf("open env.ini file failed! file = %s\n", ENV_INI_FILE);
+		return -1;
+	}
+
+	/*getline只有linux下才有*/
+	while(read = getline(&line, &len, fp) != -1){
+		if(get_conf_item(line, &item) != 0){
+			continue;
+		}
+
+		if(strcmp(item.key, "env") == 0)
+			strncpy(env.env, item.value, ENV_SIZE);
+		else if(strcmp(item.key, "configserver.url") == 0)
+			strncpy(env.env_domain, item.value, ENV_DOMAIN);
+		else if(strcmp(item.key, "configserver.port") == 0)
+			env.port = atoi(item.value);
+	}
+
+	if(line != NULL)
+		free(line);
+
+	fclose(fp);
+
+	/*"curl \"http://%s:%d/ycc-server/config.co?method=getConfig&dataId=zookeeper-meta.properties&group=yihaodian_product-images&env=%s\" -o 2*/
+	sprintf(url, "curl \"http://%s:%d/ycc-server/config.co?method=getConfig&dataId=zookeeper-meta.properties&group=yihaodian_product-images&env=%s\" -o 2", 
+		env.env_domain, env.port, env.env);
+
+	system(url);
+
+	fp = fopen("./2", "r");
+	if(fp == NULL){
+		printf("open http response file failed!! file = %s, url = %s\n", "./2", url);
+		return -1;
+	}
+
+	while(read = getline(&line, &len, fp) != -1){
+		if(get_conf_item(line, &item) != 0){
+			continue;
+		}
+
+		if(strcmp(item.key, "zookeeper") == 0)
+			strncpy(cell_config->zk_host, item.value, PATH_SIZE);
+	}
+
+	if(line != NULL)
+		free(line);
+
+	fclose(fp);
+
+	return 0;
+}
+
+
 

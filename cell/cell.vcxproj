@@ -74,6 +74,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\rpc\cell_codec.h" />
+    <ClInclude Include="..\rpc\cell_msg.h" />
+    <ClInclude Include="..\rpc\meta_rpc.h" />
     <ClInclude Include="ae_poll.h" />
     <ClInclude Include="cell.h" />
     <ClInclude Include="cell_codec.h" />
@@ -91,6 +94,10 @@
     <ClInclude Include="poll_thread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\rpc\cell_codec.c" />
+    <ClCompile Include="..\rpc\cell_msg.c" />
+    <ClCompile Include="..\rpc\meta_rpc.c" />
+    <ClCompile Include="..\rpc\test.c" />
     <ClCompile Include="ae_poll.c" />
     <ClCompile Include="cell.c" />
     <ClCompile Include="cell_codec.c" />
@@ -105,10 +112,6 @@
     <ClCompile Include="db_pool.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="poll_thread.c" />
-    <ClCompile Include="test\test_bin_stream.c" />
-    <ClCompile Include="test\test_client.c" />
-    <ClCompile Include="test\test_log.c" />
-    <ClCompile Include="test\test_pool.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

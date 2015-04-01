@@ -141,7 +141,7 @@ AGAIN:
 	return NULL;
 }
 
-void loop_run()
+void loop_run(check_zookeeper_t fun)
 {
 	int i, ret;
 	pthread_t* ids;
@@ -151,7 +151,7 @@ void loop_run()
 	/*创建并启动io 线程池*/
 	pthread_attr_init(&attr);
 	ids = (pthread_t*)malloc(sizeof(pthread_t) * thread_count);
-	for(i = 0; i < thread_count - 1; i ++){
+	for(i = 0; i < thread_count; i ++){
 		if((ret = pthread_create(ids + i, &attr, thread_worker, NULL))){
 			log_error("can't create thread, error = %d", ret);
 			exit(-1);
@@ -159,7 +159,7 @@ void loop_run()
 	}
 
 	/*将主线程也加入到监听event loop的行列*/
-	thread_worker(NULL);
+	fun();
 
 	log_warn("loop exiting ...");
 	/*等待所有线程退出*/
