@@ -153,12 +153,17 @@ void ack_encode(bin_stream_t* strm, add_meta_ack_t* ack)
 {
 	mach_uint32_write(strm, ack->sid);
 	mach_uint32_write(strm, ack->result);
+
+	mach_data_write(strm, (uint8_t*)(ack->err), strlen(ack->err) + 1);
 }
 
 int ack_decode(bin_stream_t* strm, add_meta_ack_t* ack)
 {
 	mach_uint32_read(strm, &(ack->sid));
 	mach_uint32_read(strm, &(ack->result));
+	if(mach_data_read(strm, (uint8_t*)(ack->err), MAX_INFO_SIZE) == READ_DATA_ERROR)
+		return -1;
+
 	return 0;
 }
 
@@ -396,7 +401,7 @@ void replace_meta_encode(bin_stream_t* strm, replace_meta_ver_t* m)
 int	replace_meta_decode(bin_stream_t* strm, replace_meta_ver_t* m)
 {
 	mach_uint32_read(strm, &(m->sid));
-	
+
 	if(mach_data_read(strm, (uint8_t*)(m->path), MAX_FILE_NAME) == READ_DATA_ERROR)
 		return -1;
 

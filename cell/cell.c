@@ -190,7 +190,7 @@ static void add_life_cycle(handler_t* h, add_life_cycle_t* msg)
 	db_helper_t* help;
 	char key[MAX_KEY_SIZE];
 	meta_kv_t kv;
-
+	char* err = "SUCCESS";
 	add_life_cycle_ack_t ack;
 
 	kv.key = key;
@@ -199,11 +199,17 @@ static void add_life_cycle(handler_t* h, add_life_cycle_t* msg)
 	kv.value_size = strlen(msg->url) + 1;
 
 	help = get_helper(db_pool);
-	if(help != NULL && replace_kv(help, &kv, "dfs_lifecycle") == 0)
+	if(help != NULL && replace_kv(help, &kv, "dfs_lifecycle", ack.err) == 0){
 		ack.result = NET_SUCC;
-	else
+	}
+	else{
+		err = "insert dfs_lifecycle failed!";
 		ack.result = ADD_LIFE_FAILED;
-	release_helper(db_pool, help);
+	}
+
+	strncpy(ack.err, err, MAX_INFO_SIZE);
+	if(help != NULL)
+		release_helper(db_pool, help);
 
 	ack.sid = msg->sid;
 	hander_send(h, ADD_LIFE_CYCLE_ACK, &ack);
@@ -215,6 +221,7 @@ static void add_meta(handler_t* h, add_meta_t* m)
 	bin_stream_t* strm;
 	db_helper_t* help;
 	add_meta_ack_t ack;
+	char* err = "SUCCESS";
 
 	kv.key = m->path;
 	kv.key_size = strlen(m->path);
@@ -226,6 +233,7 @@ static void add_meta(handler_t* h, add_meta_t* m)
 	if(strm == NULL){
 		log_warn("alloc bin stream failed!");
 		ack.result = SERVER_ERROR;
+		strcpy(ack.err, "MetaServer alloc bin stream failed");
 		hander_send(h, ADD_META_ACK, &ack);
 		return;
 	}
@@ -234,6 +242,7 @@ static void add_meta(handler_t* h, add_meta_t* m)
 	help = get_helper(db_pool);
 	if(help == NULL){
 		ack.result = NO_DB_HELPER;
+		strncpy(ack.err, "no DB helper", MAX_INFO_SIZE);
 	}
 	else{
 		mach_data_write(strm, (uint8_t*)(m->url), strlen(m->url) + 1);
@@ -244,13 +253,15 @@ static void add_meta(handler_t* h, add_meta_t* m)
 
 		kv.value = (char*)(strm->rptr);
 		kv.value_size = strm->used - strm->rsize;
-		if(insert_kv(help, &kv, m->pool) == 0){
+		if(insert_kv(help, &kv, m->pool, ack.err) == 0){
 			ack.result = NET_SUCC;
+			strncpy(ack.err, err, MAX_INFO_SIZE);
 			/*update lru_cache*/
 			insert_cache((uint8_t*)(kv.key), kv.key_size, (uint8_t*)(kv.value), kv.value_size);
 		}
-		else
+		else{
 			ack.result = INSERT_FAILED;
+		}
 	}	
 
 	release_helper(db_pool, help);
@@ -264,7 +275,7 @@ static void get_db_meta(db_helper_t* help, const char* key, const char* pool, ge
 	meta_kv_t kv;
 	bin_stream_t* strm;
 	cache_item_t* item = NULL;
-
+	char err[MAX_INFO_SIZE];
 	int32_t rc = -1;
 
 	memset(ack, 0x00, sizeof(get_meta_ack_t));
@@ -291,10 +302,10 @@ static void get_db_meta(db_helper_t* help, const char* key, const char* pool, ge
 			rc = 0;
 		}
 		else
-			rc = get_kv(help, &kv, pool);
+			rc = get_kv(help, &kv, pool, err);
 	}
 	else
-		rc = get_kv(help, &kv, pool);
+		rc = get_kv(help, &kv, pool, err);
 
 	if(rc < 0){
 		log_warn("db have not key, key = %s", kv.key);
@@ -319,18 +330,21 @@ static void get_db_meta(db_helper_t* help, const char* key, const char* pool, ge
 		if(mach_data_read(strm, (uint8_t*)(ack->url), MAX_FILE_NAME) == READ_DATA_ERROR){
 			log_warn("kv value is error, key = %s", key);
 			ack->result = KV_VAULE_ERROR;
+
 			goto END_OF;
 		}
 
 		if(mach_data_read(strm, (uint8_t*)(ack->uploader), USERNAME_SIZE) == READ_DATA_ERROR){
 			log_warn("kv value is error, key = %s", key);
 			ack->result = KV_VAULE_ERROR;
+
 			goto END_OF;
 		}
 
 		if(mach_data_read(strm, (uint8_t*)(ack->pwd), USERNAME_SIZE) == READ_DATA_ERROR){
 			log_warn("kv value is error, key = %s", key);
 			ack->result = KV_VAULE_ERROR;
+
 			goto END_OF;
 		}
 
@@ -338,6 +352,7 @@ static void get_db_meta(db_helper_t* help, const char* key, const char* pool, ge
 		if(ack->crpyt_key_size == READ_DATA_ERROR){
 			log_warn("kv value is error, key = %s", key);
 			ack->result = KV_VAULE_ERROR;
+
 			goto END_OF;
 		}
 
@@ -375,6 +390,7 @@ static void update_meta(handler_t* h, update_meta_t* m)
 	bin_stream_t* strm;
 	meta_kv_t kv;
 	update_meta_ack_t ack;
+	char* err = "SUCCESS";
 
 	ack.sid = m->sid;
 
@@ -388,6 +404,7 @@ static void update_meta(handler_t* h, update_meta_t* m)
 
 				log_warn("alloc bin stream failed!");
 				ack.result = SERVER_ERROR;
+				strcpy(ack.err, "MetaServer alloc bin stream failed");
 				hander_send(h, UPDATE_META_ACK, &ack);
 				return ;
 			}
@@ -411,24 +428,32 @@ static void update_meta(handler_t* h, update_meta_t* m)
 			kv.value = (char*)(strm->rptr);
 			kv.value_size = strm->used - strm->rsize;
 
-			if(update_kv(help, &kv, m->pool) == 0){
+			if(update_kv(help, &kv, m->pool, ack.err) == 0){
 				ack.result = NET_SUCC;
+				strncpy(ack.err, err, MAX_INFO_SIZE);
 				/*update lru_cache*/
 				insert_cache((uint8_t *)kv.key, kv.key_size, (uint8_t*)(kv.value), kv.value_size);
 			}
-			else
+			else{
 				ack.result = UPDATE_KV_ERROR;
+			}
 
 			pool_free(strm_pool, strm);
 		}
-		else/*cache和数据库的一致性同步*/
+		else{/*cache和数据库的一致性同步*/
+			ack.result = KEY_NOT_EXIST;
+			sprintf(ack.err, "DB have not %s file meta", m->path);
 			erase_cache((uint8_t*)m->path, strlen(m->path));
+		}
 
 		release_helper(db_pool, help);
 	}
-	else
+	else{
 		ack.result = NO_DB_HELPER;
-	
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
+	}
+
 	hander_send(h, UPDATE_META_ACK, &ack);
 }
 
@@ -441,6 +466,8 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 	replace_meta_ack_t ack;
 	char path_ver[MAX_FILE_NAME];
 
+	char* err = "SUCCESS";
+
 	ack.sid = m->sid;
 
 	help = get_helper(db_pool);
@@ -450,6 +477,8 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 			release_helper(db_pool, help);
 			log_warn("alloc bin stream failed!");
 			ack.result = SERVER_ERROR;
+			strcpy(ack.err, "meta server alloc bin stream failed");
+
 			hander_send(h, REPLACE_META_VER_ACK, &ack);
 			return ;
 		}
@@ -468,8 +497,11 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 			kv.value = (char*)(strm->rptr);
 			kv.value_size = strm->used - strm->rsize;
 
-			if(update_kv(help, &kv, m->pool) == 0){
+			if(update_kv(help, &kv, m->pool, ack.err) == 0){
+				char param[MAX_INFO_SIZE];
+
 				ack.result = NET_SUCC;
+				strncpy(ack.err, err, MAX_INFO_SIZE);
 				insert_cache((uint8_t *)kv.key, kv.key_size, (uint8_t*)(kv.value), kv.value_size);
 
 				if(m->version > 0){
@@ -488,12 +520,14 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 					kv.key_size = strlen(path_ver);
 					kv.value = (char*)(strm->rptr);
 					kv.value_size = strm->used - strm->rsize;
-					if(replace_kv(help, &kv, m->pool) != 0)
+					if(replace_kv(help, &kv, m->pool, param) != 0){
 						log_error("replace kv failed, key = %s", kv.key);
+					}
 				}
 			}
-			else
+			else{
 				ack.result = UPDATE_KV_ERROR;
+			}
 		}
 		else{ /*原来的meta不存在，新建一个默认的meta信息*/
 			mach_data_write(strm, (uint8_t*)(m->url), strlen(m->url) + 1);
@@ -506,17 +540,24 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 			kv.key_size = strlen(m->path);
 			kv.value = (char*)(strm->rptr);
 			kv.value_size = strm->used - strm->rsize;
-			if(insert_kv(help, &kv, m->pool) == 0){ 
+			if(insert_kv(help, &kv, m->pool, ack.err) == 0){ 
 				ack.result = NET_SUCC;
+				strncpy(ack.err, err, MAX_INFO_SIZE);
 				insert_cache((uint8_t*)(kv.key), kv.key_size, (uint8_t*)(kv.value), kv.value_size); /*update lru_cache*/
 			}
-			else
+			else{
 				ack.result = INSERT_FAILED;
+			}
 		}
 
 		pool_free(strm_pool, strm);
 
 		release_helper(db_pool, help);
+	}
+	else{
+		ack.result = NO_DB_HELPER;
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
 	}
 
 	hander_send(h, REPLACE_META_VER_ACK, &ack);
@@ -527,6 +568,7 @@ static void del_meta(handler_t* h, del_meta_t* m)
 	del_meta_ack_t ack;
 	db_helper_t* help;
 	meta_kv_t kv;
+	char* err = "SUCCESS";
 
 	kv.key = m->path;
 	kv.key_size = strlen(m->path);
@@ -534,15 +576,18 @@ static void del_meta(handler_t* h, del_meta_t* m)
 	help = get_helper(db_pool);
 	if(help == NULL){
 		ack.result = NO_DB_HELPER;
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
 	}
 	else{
 		/*将kv从lru cache中删除*/
 		erase_cache((uint8_t*)kv.key, kv.key_size);
-
-		if(delete_kv(help, m->path, strlen(m->path), m->pool) != 0)
+		if(delete_kv(help, m->path, strlen(m->path), m->pool, ack.err) != 0)
 			ack.result = DELETE_KV_ERROR;
-		else
+		else{
 			ack.result = NET_SUCC;
+			strncpy(ack.err, err, MAX_INFO_SIZE);
+		}
 
 		release_helper(db_pool, help);
 	}
@@ -555,17 +600,25 @@ static void add_file_log(handler_t* h, add_log_t* m)
 {
 	add_log_ack_t ack;
 	db_helper_t* help;
+	char* err = "SUCCESS";
 
 	ack.result = NET_SUCC;
 	help = get_helper(db_pool);
 	if(help != NULL){
-		if(insert_dfs_log(help, m) != 0)
+		if(insert_dfs_log(help, m, ack.err) != 0){
 			ack.result = INSERT_FAILED;
+		}
+		else{
+			strncpy(ack.err, err, MAX_INFO_SIZE);
+		}
 
 		release_helper(db_pool, help);
 	}
-	else
+	else{
 		ack.result = NO_DB_HELPER;
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
+	}
 
 	ack.sid = m->sid;
 	hander_send(h, ADD_FILE_LOG_ACK, &ack);
@@ -575,6 +628,7 @@ static void check_upload(handler_t* h, check_upload_t* m)
 {
 	check_upload_ack_t ack;
 	db_helper_t* help;
+	char* err = "SUCCESS";
 
 	ack.result = NET_SUCC;
 	help = get_helper(db_pool);
@@ -582,22 +636,34 @@ static void check_upload(handler_t* h, check_upload_t* m)
 		int64_t total_size, used_size;
 		int64_t	day_size, day_used;
 		int flag;
-		int ret = get_dfs_user_info(help, m->user, &total_size, &used_size, &day_size, &day_used, &flag);
-		if(ret == -1) /*数据库操作失败*/
+		int ret = get_dfs_user_info(help, m->user, &total_size, &used_size, &day_size, &day_used, &flag, ack.err);
+		if(ret == -1){/*数据库操作失败*/
 			ack.result = KEY_NOT_EXIST;
-		else if(ret == -2) /*用户不存在*/
-			ack.result = 9;
-		else{
-			if(!(used_size + m->file_size < total_size && day_size > day_used + m->file_size))
-				ack.result = 8; /*空间上限*/
-			else if(flag == 1)	/*禁止上传*/
-				ack.result = 9;
-
+			err = "DataBase error!!";
 		}
+		else if(ret == -2){ /*用户不存在*/
+			ack.result = 9;
+			err = "user is not in DB";
+		}
+		else{
+			if(!(used_size + m->file_size < total_size && day_size > day_used + m->file_size)){
+				ack.result = 8; /*空间上限*/
+				err = "user have not space";
+			}
+			else if(flag == 1){	/*禁止上传*/
+				ack.result = 9;
+				err = "user in block list";
+			}
+		}
+
+		strncpy(ack.err, err, MAX_INFO_SIZE);
 		release_helper(db_pool, help);
 	}
-	else
+	else{
 		ack.result = NO_DB_HELPER;
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
+	}
 
 	ack.sid = m->sid;
 	hander_send(h, CHECK_UPLOAD_ACK, &ack);
@@ -607,17 +673,23 @@ static void update_upload_info(handler_t* h, upload_file_t* m)
 {
 	upload_file_ack_t ack;
 	db_helper_t* help;
+	char* err = "SUCCESS";
 
 	ack.result = NET_SUCC;
 	help = get_helper(db_pool);
 	if(help != NULL){
-		if(update_dfs_user_info(help, m->user, m->file_size) != 0)
+		if(update_dfs_user_info(help, m->user, m->file_size, ack.err) != 0)
 			ack.result = UPDATE_KV_ERROR;
+		else
+			strncpy(ack.err, err, MAX_INFO_SIZE);
 
 		release_helper(db_pool, help);
 	}
-	else
+	else{
 		ack.result = NO_DB_HELPER;
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
+	}
 
 	ack.sid = m->sid;
 	hander_send(h, UPLOAD_FILE_ACK, &ack);
@@ -627,17 +699,23 @@ static void set_user_flag(handler_t* h, user_flag_t* m)
 {
 	upload_file_ack_t ack;
 	db_helper_t* help;
+	char* err = "SUCCESS";
 
 	ack.result = NET_SUCC;
 	help = get_helper(db_pool);
 	if(help != NULL){
-		if(update_dfs_user_flag(help, m->user, m->flag) != 0)
+		if(update_dfs_user_flag(help, m->user, m->flag, ack.err) != 0)
 			ack.result = UPDATE_KV_ERROR;
+		else
+			strncpy(ack.err, err, MAX_INFO_SIZE);
 
 		release_helper(db_pool, help);
 	}
-	else
+	else{
 		ack.result = NO_DB_HELPER;
+		err = "no DB helper";
+		strncpy(ack.err, err, MAX_INFO_SIZE);
+	}
 
 	ack.sid = m->sid;
 	hander_send(h, SET_USER_FLAG_ACK, &ack);

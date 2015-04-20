@@ -132,7 +132,7 @@ int32_t close_mysql(db_helper_t* h)
 	return 0;
 }
 
-int32_t insert_kv(db_helper_t* h, meta_kv_t* kv, const char* space)
+int32_t insert_kv(db_helper_t* h, meta_kv_t* kv, const char* space, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -160,6 +160,7 @@ RETRY:
 		}
 		
 		log_debug("execute sql:%s", h->sql);
+
 		/*½øÐÐMYSQLÓï¾äÖ´ÐÐ*/
 		if(mysql_real_query(&(h->mysql), h->sql, pos) != 0){
 			int err = mysql_errno(&(h->mysql));
@@ -169,7 +170,8 @@ RETRY:
 				goto RETRY;
 			}
 			else{
-				log_error("mysql error = %d", err);
+				log_error("mysql error = %d, err = %s", err, mysql_error(&(h->mysql)));
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -177,6 +179,7 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
@@ -184,7 +187,7 @@ RETRY:
 	return 0;
 }
 
-int32_t replace_kv(db_helper_t* h, meta_kv_t* kv, const char* space)
+int32_t replace_kv(db_helper_t* h, meta_kv_t* kv, const char* space, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -222,6 +225,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -229,13 +233,14 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
 	return 0;
 }
 
-int32_t update_kv(db_helper_t* h, meta_kv_t* kv, const char* space)
+int32_t update_kv(db_helper_t* h, meta_kv_t* kv, const char* space, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -269,6 +274,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -276,13 +282,14 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
 	return 0;
 }
 
-int32_t delete_kv(db_helper_t* h, const char* key, size_t key_size, const char* space)
+int32_t delete_kv(db_helper_t* h, const char* key, size_t key_size, const char* space, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -312,7 +319,8 @@ RETRY:
 				goto RETRY;
 			}
 			else{
-				log_error("mysql error = %d", err);
+				log_error("mysql error = %d, info = %s", err, mysql_error(&(h->mysql)));
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -320,13 +328,14 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
 	return 0;
 }
 
-int32_t get_kv(db_helper_t* h, meta_kv_t* kv, const char* space)
+int32_t get_kv(db_helper_t* h, meta_kv_t* kv, const char* space, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -360,7 +369,8 @@ RETRY:
 				goto RETRY;
 			}
 			else{
-				log_error("mysql error = %d", err);
+				log_error("mysql error = %d, info = %s", err, mysql_error(&(h->mysql)));
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -368,6 +378,7 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
@@ -402,7 +413,7 @@ RETRY:
 
 int32_t scan_kv(db_helper_t* h, const char* start_key, size_t start_key_size, 
 								const char* end_key, size_t end_key_size, 
-								meta_kv_t** kvs, const char* space, int limit, int skip)
+								meta_kv_t** kvs, const char* space, int limit, int skip, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -445,6 +456,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -452,6 +464,7 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
@@ -500,7 +513,7 @@ RETRY:
 	return ret;
 }
 
-int32_t insert_dfs_log(db_helper_t* h, add_log_t* info)
+int32_t insert_dfs_log(db_helper_t* h, add_log_t* info, char* oinfo)
 {
 	int count = 0;
 	int pos = 0;
@@ -531,6 +544,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(oinfo, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -538,13 +552,15 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(oinfo, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
 	return 0;
 }
 
-int32_t get_dfs_user_info(db_helper_t* h, const char* user, int64_t* total_size, int64_t* used_size, int64_t* day_size, int64_t* day_used, int* flag)
+int32_t get_dfs_user_info(db_helper_t* h, const char* user, int64_t* total_size, int64_t* used_size, int64_t* day_size,
+						int64_t* day_used, int* flag, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -577,6 +593,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -584,12 +601,14 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
 	mysql_ret = mysql_store_result(&(h->mysql));
 	if(mysql_ret == NULL){
 		log_error("mysql store result fialed! %s %s", h->db_host, mysql_error(&(h->mysql)));
+		strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 		return -1;
 	}
 
@@ -614,7 +633,7 @@ RETRY:
 	return (ret>0 ? 0 : -2);
 }
 
-int32_t update_dfs_user_info(db_helper_t* h, const char* user, uint32_t file_size)
+int32_t update_dfs_user_info(db_helper_t* h, const char* user, uint32_t file_size, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -645,6 +664,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -652,13 +672,14 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 
 	return 0;
 }
 
-int32_t update_dfs_user_flag(db_helper_t* h, const char* user, int flag)
+int32_t update_dfs_user_flag(db_helper_t* h, const char* user, int flag, char* info)
 {
 	int count = 0;
 	int pos = 0;
@@ -687,6 +708,7 @@ RETRY:
 			}
 			else{
 				log_error("mysql error = %d", err);
+				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
 				close_mysql(h);
 				return -1;
 			}
@@ -694,6 +716,7 @@ RETRY:
 	}
 	else{
 		log_error("mysql disconnected!!");
+		strncpy(info, "metaserver connect mysql failed", MAX_INFO_SIZE);
 		return -1;
 	}
 

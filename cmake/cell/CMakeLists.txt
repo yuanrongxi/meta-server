@@ -7,7 +7,7 @@ PROJECT(cell)
 # includes
 SET(includes
     "../../cell"
-    "/usr/local/mysql/include"
+    "/usr/local/server/mysql-5.6/include"
     )
 INCLUDE_DIRECTORIES(${includes})
 

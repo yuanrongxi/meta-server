@@ -72,7 +72,7 @@ int				rpc_get_meta_by_path(const char* ip, int port, const char* path, char** u
 *timeout		rpc调用超时时间
 *返回值			0表示成功，其他表示失败
 ****************************************************************/
-int				rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* pool, int timeout);
+int				rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* pool, int timeout, char** err);
 
 /***************************************************************
 修改一个文件的元信息(提取码、加解密KEY、是否对外开放等元信息)
@@ -86,7 +86,7 @@ int				rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* poo
 *返回值			0表示成功，其他表示失败
 ***************************************************************/
 int				rpc_update_meta(const char* ip, int port, const char* path, const char* pool, int opened, const char* pwd,
-								unsigned char* crpyt_key, size_t crpyt_size, int timeout);
+								unsigned char* crpyt_key, size_t crpyt_size, int timeout, char** err);
 
 /*****************************************************************
 替换一个拥有meta信息的文件，并根据文件版本保存原来文件的meta信息,
@@ -100,7 +100,7 @@ int				rpc_update_meta(const char* ip, int port, const char* path, const char* p
 *返回值			0表示成功，其他表示失败
 ***************************************************************/
 int				rpc_replace_meta(const char* ip, int port, const char* path, const char* pool, const char* url, 
-								const char* user, int version, int timeout);
+								const char* user, int version, int timeout, char** err);
 
 /***************************************************************
 删除一个文件的元信息
@@ -108,7 +108,7 @@ int				rpc_replace_meta(const char* ip, int port, const char* path, const char* 
 *timeout		rpc调用超时时间
 *返回值			0表示成功，其他表示失败
 ***************************************************************/
-int				rpc_delete_meta(const char* ip, int port, const char* path, const char* pool, int timeout);
+int				rpc_delete_meta(const char* ip, int port, const char* path, const char* pool, int timeout, char** err);
 
 /***************************************************************
 增加一个文件的生命周期
@@ -118,7 +118,7 @@ int				rpc_delete_meta(const char* ip, int port, const char* path, const char* p
 *timeout		rpc调用超时时间
 *返回值			0表示成功，其他表示失败
 ***************************************************************/
-int				rpc_add_life_cycle(const char* ip, int port, const char* url, int day, int cold, int timeout);
+int				rpc_add_life_cycle(const char* ip, int port, const char* url, int day, int cold, int timeout, char** err);
 
 /***************************************************************
 判断用户是否可以上传文件
@@ -129,7 +129,7 @@ int				rpc_add_life_cycle(const char* ip, int port, const char* url, int day, in
 *返回值			0表示允许上传，2表示没有多余空间上传，3表示user列
 				入黑名单，其他表示不允许上传
 ***************************************************************/
-int				rpc_is_upload_file(const char* ip, int port, const char* user, const char* exname, int file_size, int timeout);
+int				rpc_is_upload_file(const char* ip, int port, const char* user, const char* exname, int file_size, int timeout, char** err);
 
 /***************************************************************
 upload 上传文件成功后，报告给metaserver进行用户空间信息更新
@@ -138,7 +138,7 @@ upload 上传文件成功后，报告给metaserver进行用户空间信息更新
 *timeout		rpc调用超时时间
 *返回值			0-可以上传文件，8-空间限制，9-用户上传文件权限被限制，1 ~ 7是普通RPC错误
 ***************************************************************/
-int				rpc_report_upload_file(const char* ip, int port, const char* user, int file_size, int timeout);
+int				rpc_report_upload_file(const char* ip, int port, const char* user, int file_size, int timeout, char** err);
 
 /***************************************************************
 文件进行添加、删除、修改、元数据操作后必须向meta提交操作日志
@@ -150,7 +150,8 @@ int				rpc_report_upload_file(const char* ip, int port, const char* user, int fi
 *timeout		rpc调用超时时间
 *返回值			0
 ***************************************************************/
-int				rpc_add_file_log(const char* ip, int port, const char* user, const char* pool, const char* url, int type, const char* op_ip, int timeout);
+int				rpc_add_file_log(const char* ip, int port, const char* user, const char* pool, const char* url, 
+								int type, const char* op_ip, int timeout, char** err);
 
 /***************************************************************
 允许用户上传
@@ -158,7 +159,7 @@ int				rpc_add_file_log(const char* ip, int port, const char* user, const char* 
 *timeout		rpc调用超时时间
 *返回值			0-成功
 ***************************************************************/
-int				rpc_enable_user(const char* ip, int port, const char* user, int timeout);
+int				rpc_enable_user(const char* ip, int port, const char* user, int timeout, char** err);
 
 /***************************************************************
 禁止用户上传
@@ -166,7 +167,7 @@ int				rpc_enable_user(const char* ip, int port, const char* user, int timeout);
 *timeout		rpc调用超时时间
 *返回值			0-成功
 ***************************************************************/
-int				rpc_disable_user(const char* ip, int port, const char* user, int timeout);
+int				rpc_disable_user(const char* ip, int port, const char* user, int timeout, char** err);
 
 #endif
 

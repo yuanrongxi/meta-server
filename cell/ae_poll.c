@@ -43,7 +43,7 @@ int ae_add_event(event_loop_t* event, int fd, int mask)
 	/*set event read or write*/
 	struct epoll_event e;
 
-	e.events = EPOLLONESHOT;
+	e.events = EPOLLONESHOT | EPOLLHUP;
 	if(mask & AE_READABLE)
 		e.events |= EPOLLIN;
 	if(mask & AE_WRITABLE)
@@ -65,7 +65,7 @@ int ae_update_event(event_loop_t*event, int fd, int mask)
 	
 	struct epoll_event e;
 
-	e.events = EPOLLONESHOT;
+	e.events = EPOLLONESHOT | EPOLLHUP;
 	if(mask & AE_READABLE)
 		e.events |= EPOLLIN;
 	if(mask & AE_WRITABLE)
@@ -116,8 +116,8 @@ int ae_wait(event_loop_t* event, struct timeval* tv)
 			
 			if(e->events & EPOLLIN) mask |= AE_READABLE;
 			if(e->events & EPOLLOUT) mask |= AE_WRITABLE;
-			if (e->events & EPOLLERR) mask |= AE_WRITABLE;
-			if (e->events & EPOLLHUP) mask |= AE_WRITABLE;
+			if (e->events & EPOLLERR) mask |= AE_READABLE;
+			if (e->events & EPOLLHUP) mask |= AE_READABLE;
 
 			/*set event socket*/
 			event->fired[i].fd = e->data.fd;

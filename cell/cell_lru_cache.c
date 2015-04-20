@@ -213,7 +213,7 @@ static void cache_weedout(time_t t)
 	cache_item_t* it;
 	cache_item_t* old;
 	uint32_t r, hash;
-
+	char* k[1024];
 	while(lru_cache->max_size < lru_cache->curr_size){
 		/*先考虑淘汰younger*/
 		it = lru_cache->younger.next;
@@ -239,6 +239,9 @@ static void cache_weedout(time_t t)
 		REC_LOCK(r);
 		delete_item(hash, ITEM_KEY(it), it->ksize);
 		REC_UNLOCK(r);
+
+		memcpy(k, ITEM_KEY(it), it->ksize);
+		k[it->ksize] = 0;
 
 		/*从新获得lru_cache->lock,对it进行释放*/
 		LOCK(&(lru_cache->lock));

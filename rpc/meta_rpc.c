@@ -65,8 +65,8 @@ typedef struct rpc_socket_pool_t
 	int				lock;
 }rpc_socket_pool_t;
 
-#define MAX_SIZE		32		/*池中最大socket缓冲个数*/
-#define MAX_PRE_META	2		/*每个metaserver最多保持2个socket在pool中*/
+#define MAX_SIZE		128		/*池中最大socket缓冲个数*/
+#define MAX_PRE_META	8		/*每个metaserver最多保持8个socket在pool中*/
 
 static rpc_socket_pool_t socket_pool;
 
@@ -473,10 +473,12 @@ int rpc_get_meta_by_path(const char* ip, int port, const char* path, char** url,
 }
 
 /*处理通用的ack消息*/
-static int process_ack(uint32_t msg_id, uint32_t sid, int fd, int timeout)
+static int process_ack(uint32_t msg_id, uint32_t sid, int fd, int timeout, char** err)
 {
 	bin_stream_t* strm;
 	int ret = RPC_TIMEOUT;
+	char* info;
+	*err = NULL;
 
 	strm = recv_packet(fd, timeout <= 0 ? 3000 : timeout);
 	if(strm != NULL){
@@ -495,6 +497,10 @@ static int process_ack(uint32_t msg_id, uint32_t sid, int fd, int timeout)
 		else
 			ret = RPC_PACKET_ERROR;
 
+		info = calloc(1, strlen(ack.err) + 1);
+		strcpy(info, ack.err);
+		*err = info;
+
 		bin_stream_destroy(strm);
 		free(strm);
 	}
@@ -502,7 +508,7 @@ static int process_ack(uint32_t msg_id, uint32_t sid, int fd, int timeout)
 	return ret;
 }
 
-int	rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* pool, int timeout)
+int	rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* pool, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -532,7 +538,7 @@ int	rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* pool, 
 
 	send_packet(fd, ADD_META, &body);
 
-	ret = process_ack(ADD_META_ACK, body.sid, fd, timeout);
+	ret = process_ack(ADD_META_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
@@ -540,7 +546,7 @@ int	rpc_add_meta(const char* ip, int port, meta_info_t* info, const char* pool, 
 }
 
 int rpc_update_meta(const char* ip, int port, const char* path, const char* pool, int opened, const char* pwd, 
-					unsigned char* crpyt_key, size_t crpyt_size, int timeout)
+					unsigned char* crpyt_key, size_t crpyt_size, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -582,14 +588,15 @@ int rpc_update_meta(const char* ip, int port, const char* path, const char* pool
 
 	send_packet(fd, UPDATE_META, &body);
 
-	ret = process_ack(UPDATE_META_ACK, body.sid, fd, timeout);
+	ret = process_ack(UPDATE_META_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-int rpc_replace_meta(const char* ip, int port, const char* path, const char* pool, const char* url, const char* user, int version, int timeout)
+int rpc_replace_meta(const char* ip, int port, const char* path, const char* pool, const char* url, 
+			const char* user, int version, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -614,14 +621,14 @@ int rpc_replace_meta(const char* ip, int port, const char* path, const char* poo
 
 	send_packet(fd, REPLACE_META_VER, &body);
 
-	ret = process_ack(REPLACE_META_VER_ACK, body.sid, fd, timeout);
+	ret = process_ack(REPLACE_META_VER_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-int rpc_delete_meta(const char* ip, int port, const char* path, const char* pool, int timeout)
+int rpc_delete_meta(const char* ip, int port, const char* path, const char* pool, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -643,13 +650,13 @@ int rpc_delete_meta(const char* ip, int port, const char* path, const char* pool
 	
 	send_packet(fd, DELETE_META, &body);
 
-	ret = process_ack(DELETE_META_ACK, body.sid, fd, timeout);
+	ret = process_ack(DELETE_META_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 	return ret;
 }
 
-int rpc_add_life_cycle(const char* ip, int port, const char* url, int day, int cold, int timeout)
+int rpc_add_life_cycle(const char* ip, int port, const char* url, int day, int cold, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -672,14 +679,15 @@ int rpc_add_life_cycle(const char* ip, int port, const char* url, int day, int c
 	body.cold= cold;
 
 	send_packet(fd, ADD_LIFE_CYCLE, &body);
-	ret = process_ack(ADD_LIFE_CYCLE_ACK, body.sid, fd, timeout);
+	ret = process_ack(ADD_LIFE_CYCLE_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-int rpc_add_file_log(const char* ip, int port, const char* user, const char* pool, const char* url, int type, const char* op_ip, int timeout)
+int rpc_add_file_log(const char* ip, int port, const char* user, const char* pool, const char* url, int type,
+		const char* op_ip, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -705,14 +713,14 @@ int rpc_add_file_log(const char* ip, int port, const char* user, const char* poo
 
 	send_packet(fd, ADD_FILE_LOG, &body);
 
-	ret = process_ack(ADD_FILE_LOG_ACK, body.sid, fd, timeout);
+	ret = process_ack(ADD_FILE_LOG_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-int rpc_is_upload_file(const char* ip, int port, const char* user, const char* exname, int file_size, int timeout)
+int rpc_is_upload_file(const char* ip, int port, const char* user, const char* exname, int file_size, int timeout, char** err)
 {
 	int ret;
 	int fd;
@@ -735,14 +743,14 @@ int rpc_is_upload_file(const char* ip, int port, const char* user, const char* e
 
 	send_packet(fd, CHECK_UPLOAD, &body);
 
-	ret = process_ack(CHECK_UPLOAD_ACK, body.sid, fd, timeout);
+	ret = process_ack(CHECK_UPLOAD_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-int rpc_report_upload_file(const char* ip, int port, const char* user, int file_size, int timeout)
+int rpc_report_upload_file(const char* ip, int port, const char* user, int file_size, int timeout, char** err)
 {
 	int ret;
 	int fd;
@@ -765,14 +773,14 @@ int rpc_report_upload_file(const char* ip, int port, const char* user, int file_
 
 	send_packet(fd, UPLAOD_FILE, &body);
 
-	ret = process_ack(UPLOAD_FILE_ACK, body.sid, fd, timeout);
+	ret = process_ack(UPLOAD_FILE_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-static int set_user_upload(const char* ip, int port, const char* user, uint32_t flag, int timeout)
+static int set_user_upload(const char* ip, int port, const char* user, uint32_t flag, int timeout, char** err)
 {
 	int fd;
 	int ret;
@@ -795,21 +803,21 @@ static int set_user_upload(const char* ip, int port, const char* user, uint32_t 
 
 	send_packet(fd, SET_USER_FLAG, &body);
 
-	ret = process_ack(SET_USER_FLAG_ACK, body.sid, fd, timeout);
+	ret = process_ack(SET_USER_FLAG_ACK, body.sid, fd, timeout, err);
 
 	release_socket(fd, inet_addr(ip));
 
 	return ret;
 }
 
-int rpc_enable_user(const char* ip, int port, const char* user, int timeout)
+int rpc_enable_user(const char* ip, int port, const char* user, int timeout, char** err)
 {
-	return set_user_upload(ip, port, user, 0, timeout);
+	return set_user_upload(ip, port, user, 0, timeout, err);
 }
 
-int rpc_disable_user(const char* ip, int port, const char* user, int timeout)
+int rpc_disable_user(const char* ip, int port, const char* user, int timeout, char** err)
 {
-	return set_user_upload(ip, port, user, 1, timeout);
+	return set_user_upload(ip, port, user, 1, timeout, err);
 }
 
 

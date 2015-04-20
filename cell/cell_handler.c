@@ -21,6 +21,7 @@
 #include "cell_log.h"
 
 #define HANDLER_MAGIC 0x0e65970abcd37f41
+#define MAX_PACK_SIZE 65536
 
 /*备注：只有一个thread会操作一个handler的条件下作为设计实现*/
 
@@ -192,17 +193,20 @@ AGAIN:
 	return 0;
 }
 
-static void split_message(handler_t* h)
+static int split_message(handler_t* h)
 {
 	uint32_t len;
 	uint16_t id;
 
 	if(h->rstrm->rsize + 4 >= h->rstrm->used)
-		return ;
+		return 0;
 
 	for(;;){
 		len = mach_get_4(h->rstrm->rptr);
 		id = mach_get_2(h->rstrm->rptr + 4);
+
+		if(len > MAX_PACK_SIZE)
+			return -1;
 
 		if(len <= h->rstrm->used - h->rstrm->rsize - 4){ /*收全了一个报文*/
 			mach_uint32_read(h->rstrm, &len);
@@ -211,10 +215,10 @@ static void split_message(handler_t* h)
 			process(id, h);
 		}
 		else
-			return;
+			return 0;
 
 		if(h->rstrm->rsize >= h->rstrm->used)
-			return ;
+			return 0;
 	}
 }
 
@@ -237,7 +241,11 @@ static int32_t handler_on_read(handler_t* h)
 			h->rstrm->wptr += rc;
 			h->rstrm->used += rc;
 
-			split_message(h);
+			if(split_message(h) == -1){
+				log_error("tcp connection error!\n");
+				handler_close(h);
+				return -1;
+			}
 		}
 		else if(rc == 0){
 			log_error("client close connection!\n");

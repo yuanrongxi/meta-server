@@ -10,6 +10,7 @@
 #define POOL_NAME_SIZE		64
 #define USERNAME_SIZE		32
 #define CRPYT_CODE_SIZE		128
+#define MAX_INFO_SIZE		1536
 
 /*RPC message*/
 #define TEST_MSG			0x0000
@@ -70,6 +71,7 @@ typedef struct add_meta_ack_s
 {
 	uint32_t	sid;
 	uint32_t	result;						/*0表示成功，其他的表示失败*/
+	char		err[MAX_INFO_SIZE];			/*错误信息描述*/
 }add_meta_ack_t;
 
 #define SET_PWD			0X01

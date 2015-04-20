@@ -1,0 +1,7 @@
+user:meta_user 
+pwd:Zerok#775
+
+主库域名： mysql-metadb.int.yihaodian.com
+从库域名:  mysql-metadb-slave.jq.int.yihaodian.com
+端口号3306 
+库名：metadb

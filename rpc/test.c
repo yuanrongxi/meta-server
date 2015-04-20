@@ -40,7 +40,7 @@
 #include "cell_msg.h"
 #include "meta_rpc.h"
 
-#define TEST_METASERVER "192.168.113.80"
+#define TEST_METASERVER "192.168.117.84"
 #define TEST_PORT 3200
 
 /*测试通过自定义路径获得文件访问的meta信息*/
@@ -50,13 +50,15 @@ static void test_rpc(const char* key)
 	int ret;
 	ret = rpc_get_meta_by_path(TEST_METASERVER, TEST_PORT, key, &url, 1000);
 	//return ; /*功能测试时请注释return!!*/
-
+	/*
 	if(ret == RPC_SUCC){
 		printf("get meta by path, path = %s, url = %s\n", key, url);
-		free(url); /*TODO:一定得释放内存*/
 	}
 	else
 		printf("rpc_get_meta failed! err = %d\n", ret);
+		*/
+	if(url)
+		free(url);
 }
 
 /*用版本号访问文件历史版本元数据例子*/
@@ -90,23 +92,32 @@ static void test_auth_rpc(const char* key, const char* user, const char* pwd)
 /*更新文件元数据例子*/
 static void test_update_rpc(const char* key)
 {
-	int ret = rpc_update_meta(TEST_METASERVER, TEST_PORT, key, "test_pool", 0, "passwd", "", 0, 1000);
+	char* err = NULL;
+	int ret = rpc_update_meta(TEST_METASERVER, TEST_PORT, key, "test_pool", 1, "passwd", "", 0, 1000, &err);
 	//return;/*功能测试时请注释return!!*/
 
 	if(ret == RPC_SUCC)
-		printf("update meta key = %s success!\n", key);
+		printf("update meta key = %s success, err = %s\n", key, (err != NULL) ? err : "NULL");
 	else
-		printf("update meta failed, err = %d\n", ret);
+		printf("update meta failed, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 /*文件替换例子*/
 static void test_replace_file(const char* key, int version, const char* url)
 {
-	int ret = rpc_replace_meta(TEST_METASERVER, TEST_PORT, key, "test_pool", url, "zerok", version, 1000);
+	char* err = NULL;
+
+	int ret = rpc_replace_meta(TEST_METASERVER, TEST_PORT, key, "test_pool", url, "zerok", version, 1000, &err);
 	if(ret == RPC_SUCC)
-		printf("replace meta key = %s success!\n", key);
+		printf("replace meta key = %s success, err = %s\n", key, (err != NULL) ? err : "NULL");
 	else
-		printf("replace meta failed, err = %d\n", ret);
+		printf("replace meta failed, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 /*测试添加一个文件的meta信息*/
@@ -114,6 +125,7 @@ static void test_add_rpc(const char* key)
 {
 	meta_info_t info;
 	int ret;
+	char* err = NULL;
 
 	info.opened = 1;
 	strcpy(info.path, key);
@@ -123,81 +135,112 @@ static void test_add_rpc(const char* key)
 	info.crpyt_key_size = strlen("abcdefj") + 1;
 	strcpy(info.crpyt_key, "abcdefj");
 
-	ret = rpc_add_meta(TEST_METASERVER, TEST_PORT, &info, "test_pool", 1000);
+	ret = rpc_add_meta(TEST_METASERVER, TEST_PORT, &info, "test_pool", 1000, &err);
 	//return ;/*功能测试时请注释return!!*/
 
 	if(ret == RPC_SUCC)
-		printf("add meta key = %s, success\n", info.path);
+		printf("add meta key = %s, success, err = %s\n", info.path, (err != NULL) ? err : "NULL");
 	else
-		printf("add meta failed, err = %d\n", ret);
+		printf("add meta failed, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 /*测试删除一个文件的meta信息*/
 static void test_del_rpc(const char* key)
 {
-	int ret = rpc_delete_meta(TEST_METASERVER, TEST_PORT, key, "test_pool", 1000);
+	char* err = NULL;
+	int ret = rpc_delete_meta(TEST_METASERVER, TEST_PORT, key, "test_pool", 1000, &err);
 	//return ;/*功能测试时请注释return!!*/
 
 	if(ret == RPC_SUCC)
-		printf("delete meta key = %s success!\n", key);
+		printf("delete meta key = %s success, err = %s!\n", key, (err != NULL) ? err : "NULL");
 	else
-		printf("delete meta failed, err = %d\n", ret);
+		printf("delete meta failed, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 /*测试添加一个生命周期文件*/
 static void test_add_life(const char* url)
 {
-	int ret = rpc_add_life_cycle(TEST_METASERVER, TEST_PORT, url, 30, 0, 1000);
+	char* err = NULL;
+	int ret = rpc_add_life_cycle(TEST_METASERVER, TEST_PORT, url, 30, 0, 1000, &err);
 	if(ret == RPC_SUCC)
-		printf("add life sucess! url = %s\n", url);
+		printf("add life sucess! url = %s, err = %s\n", url, (err != NULL) ? err : "NULL");
 	else
-		printf("add life failed!, err = %d\n", ret);
+		printf("add life failed!, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 /*测试文件操作日志*/
 static void test_write_log(const char* url)
 {
-	int ret = rpc_add_file_log(TEST_METASERVER, TEST_PORT, "zerok", "test_pool", url, 0, "192.168.112.80", 1000);
+	char* err = NULL;
+	int ret = rpc_add_file_log(TEST_METASERVER, TEST_PORT, "zerok", "test_pool", url, 0, "192.168.112.80", 1000, &err);
 	if(ret == RPC_SUCC)
-		printf("write log sucess! url = %s\n", url);
+		printf("write log sucess! url = %s, err = %s\n", url, (err != NULL) ? err : "NULL");
 	else
-		printf("write log failed!, err = %d\n", ret);
+		printf("write log failed!, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 /*解禁用户上传文件*/
 static void test_enable_user()
 {
+	char* err = NULL;
 	int ret;
-	if((ret = rpc_enable_user(TEST_METASERVER, TEST_PORT, "zerok", 1000)) == 0)
-		printf("enable %s OK!\n", "zerok");
+	if((ret = rpc_enable_user(TEST_METASERVER, TEST_PORT, "zerok22", 1000, &err)) == 0)
+		printf("enable %s OK, err = %s!\n", "zerok", (err != NULL) ? err : "NULL");
 	else
-		printf("rpc_enable_user failed!, err = %d\n", ret);
+		printf("rpc_enable_user failed!, err = %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 /*禁止用户文件上传*/
 static void test_disable_user()
 {
+	char* err = NULL;
 	int ret;
-	if((ret = rpc_disable_user(TEST_METASERVER, TEST_PORT, "zerok", 1000)) == 0)
-		printf("disable %s OK!\n", "zerok");
+	if((ret = rpc_disable_user(TEST_METASERVER, TEST_PORT, "zerok", 1000, &err)) == 0)
+		printf("disable %s OK, info = %s!\n", "zerok", (err != NULL) ? err : "NULL");
 	else
-		printf("rpc_disable_user failed!, err = %d\n", ret);
+		printf("rpc_disable_user failed!, err = %d\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 static void test_report_upload()
 {
-	int ret = rpc_report_upload_file(TEST_METASERVER, TEST_PORT, "zerok", 3000, 1000);
+	char* err = NULL;
+	int ret = rpc_report_upload_file(TEST_METASERVER, TEST_PORT, "zerok", 3000, 1000, &err);
 	if(ret == 0)
-		printf("report_upload_file succ, user=%s\n", "zerok");
+		printf("report_upload_file succ, user=%s, info = %s\n", "zerok", (err != NULL) ? err : "NULL");
 	else
-		printf("report_upload_file failed, err= %d\n", ret);
+		printf("report_upload_file failed, err= %d, info = %s\n", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 static void test_check_upload()
 {
-	int ret = rpc_is_upload_file(TEST_METASERVER, TEST_PORT, "zerok", "html", 2000, 1000);
+	char* err = NULL;
+	int ret = rpc_is_upload_file(TEST_METASERVER, TEST_PORT, "zerok", "html", 2000, 1000, &err);
 	if(ret == 0)
-		printf("%s can upload file!\n", "zerok");
+		printf("%s can upload file, info = %s!\n", "zerok", (err != NULL) ? err : "NULL");
 	else
-		printf("%s can not upload file!, err = %d\n", "zerok", ret);
+		printf("%s can not upload file!, err = %d, info = %s\n", "zerok", ret, (err != NULL) ? err : "NULL");
+
+	if(err != NULL)
+		free(err);
 }
 
 #define KEY_SEED "/home/yuanrx/jpg-%d"
@@ -236,11 +279,11 @@ static void* pt_func(void* arg)
 	char key[256];
 	struct timeval b, e;
 	int scale = (server_id - 1) * 100000;
-
+	srand(time(NULL));
 	gettimeofday(&b, NULL);
 	while(i < 100000){
 		count ++;
-
+/*
 		switch(get_op_type()){
 		case 0:
 			{
@@ -275,7 +318,9 @@ static void* pt_func(void* arg)
 				del_count ++;
 			}
 			break;
-		}
+		}*/
+
+
 		i ++;
 	}
 
@@ -304,6 +349,7 @@ void test_muti_thread()
 
 int main(int argc, char* argv[])
 {
+	int b, e;
 	int i = 0;
 	char key[256];
 
@@ -311,6 +357,8 @@ int main(int argc, char* argv[])
 		server_id = atoi(argv[1]);
 		printf("server_id = %d\n", server_id);
 	}
+	else
+		server_id = 1;
 
 	srand(time(NULL));
 
@@ -319,10 +367,14 @@ int main(int argc, char* argv[])
 	sprintf(key, KEY_SEED, 100000);
 	//test_replace_file(key, 2, "/fsdf/data/N09/4.jpg");
 	//test_update_rpc(key);
-	/*test_add_rpc(key);*/
-	//test_rpc("/home/yuanrx/102.jpg");
+	test_add_rpc(key);
+	b = GetTickCount();
+	for(i = 0; i < 10000; i ++)
+		test_rpc(key);
+	e = GetTickCount();
+	printf("delay = %d\n", e - b);
 	//test_version_rpc(key, 1);
-	//test_auth_rpc("/home/yuanrx/102.jpg.1", "zerok", "abcd");
+	//test_auth_rpc(key, "zerok", "passwd");
 	//test_add_life(key);
 
 	//test_write_log(key);
@@ -330,7 +382,7 @@ int main(int argc, char* argv[])
 	//test_enable_user();
 	//test_disable_user();
 	//test_report_upload();
-	test_check_upload();
+	//test_check_upload();
 
 #ifndef WIN32
 	//test_muti_thread();

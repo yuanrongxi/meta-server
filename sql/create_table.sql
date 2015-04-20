@@ -1,3 +1,9 @@
+CREATE TABLE `test_pool` (
+  `meta_key` varchar(320) NOT NULL DEFAULT '',
+  `meta_value` varchar(640) NOT NULL,
+  PRIMARY KEY (`meta_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+
 CREATE TABLE `dfs_log_table`(
 `id` bigint auto_increment,
 `url` varchar(256) NOT NULL DEFAULT '', 
