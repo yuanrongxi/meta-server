@@ -39,6 +39,8 @@ void					pool_free(cell_pool_t* pool, void* ob);
 
 void					pool_print(cell_pool_t* pool);
 
+int32_t					get_pool_info(cell_pool_t* pool, char* buf);
+
 #endif
 
 

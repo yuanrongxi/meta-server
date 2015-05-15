@@ -13,6 +13,9 @@
 #define ENV_SIZE		64
 #define ENV_DOMAIN		256
 
+/*64G*/
+static const int64_t MAX_CACHE_SIZE = 274877906944L;
+
 cell_conf_t* cell_config = NULL;
 
 /*YCC的env.ini文件内容*/
@@ -162,8 +165,11 @@ void load_config(const char* config_file)
 			if(cell_config->listen_port == 0)
 				cell_config->listen_port = 3200;
 		}
-		else if(strcmp(item.key, "cache size") == 0)
+		else if(strcmp(item.key, "cache size") == 0){
 			cell_config->cache_size = atoll(item.value);
+			if(cell_config->cache_size > MAX_CACHE_SIZE)
+				cell_config->cache_size = MAX_CACHE_SIZE;
+		}
 		else if(strcmp(item.key, "db user") == 0)
 			strncpy(cell_config->user, item.value, VALUE_SIZE);
 		else if(strcmp(item.key, "db passwd") == 0)
@@ -239,6 +245,34 @@ void print_config()
 			printf("%s,", cell_config->db_slaves[i]);
 	}
 	printf("\n\tdb port = %d\n", cell_config->db_port);
+}
+
+int get_config_info(char* buf)
+{
+	int i, pos = 0;
+	if(cell_config == NULL)
+		return pos;
+
+	pos = sprintf(buf, "meta server config:\n");
+	pos += sprintf(buf + pos, "\tthread num = %d\n", cell_config->thread_n);
+	pos += sprintf(buf + pos, "\tserver name = %s\n", cell_config->name);
+	pos += sprintf(buf + pos, "\tserver ip = %s\n", cell_config->listen_ip);
+	pos += sprintf(buf + pos, "\tserver port = %d\n", cell_config->listen_port);
+	pos += sprintf(buf + pos, "\tcache size = %ld\n", cell_config->cache_size);
+	pos += sprintf(buf + pos, "\tzookeeper host = %s\n", cell_config->zk_host);
+	pos += sprintf(buf + pos, "\tlog = %s\n", cell_config->log_path);
+	pos += sprintf(buf + pos, "\tdb user = %s\n", cell_config->user);
+	pos += sprintf(buf + pos, "\tdb passwd = %s\n", cell_config->passwd);
+	pos += sprintf(buf + pos, "\tdb name = %s\n", cell_config->db_name);
+	pos += sprintf(buf + pos, "\tdb master = %s\n", cell_config->db_master);
+	pos += sprintf(buf + pos, "\tdb slaves:");
+	for(i = 0; i < DB_SLAVE_N; i++){
+		if(cell_config->db_slaves[i] != NULL)
+			pos += sprintf(buf + pos, "%s,", cell_config->db_slaves[i]);
+	}
+	pos += sprintf(buf + pos, "\n\tdb port = %d\n", cell_config->db_port);
+
+	return pos;
 }
 
 /*env配置文件*/

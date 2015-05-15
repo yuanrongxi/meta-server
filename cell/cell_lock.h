@@ -10,12 +10,12 @@
 /*定义一个简单的spin lock*/
 static inline void LOCK(int* q)
 {
-	if(__sync_lock_test_and_set(q, 1)){
-		int i = 0;
-		while(__sync_lock_test_and_set(q, 1)){
-			i ++;
-			if(i > 64) pthread_yield();
+	int i;
+	while(__sync_lock_test_and_set(q, 1)){
+		for(i = 0; i < 32; i ++){
+			cpu_pause();
 		}
+		pthread_yield();
 	}
 };
 

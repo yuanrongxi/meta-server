@@ -89,6 +89,14 @@ void encode_msg(bin_stream_t* strm, uint16_t id, void* ptr)
 	case REPLACE_META_VER_ACK:
 		ack_encode(strm, (replace_meta_ack_t *)ptr);
 		break;
+
+	case STATE_INFO:
+		state_info_encode(strm, (server_state_info_t*)ptr);
+		break;
+
+	case STATE_INFO_ACK:
+		state_info_ack_encode(strm, (server_state_info_ack_t*)ptr);
+		break;
 	}
 }
 
@@ -418,6 +426,35 @@ int	replace_meta_decode(bin_stream_t* strm, replace_meta_ver_t* m)
 
 	return 0;
 }
+
+void state_info_encode(bin_stream_t* strm, server_state_info_t* m)
+{
+	mach_uint32_write(strm, m->sid);
+}
+
+int	state_info_decode(bin_stream_t* strm, server_state_info_t* m)
+{
+	mach_uint32_read(strm, &(m->sid));
+	return 0;
+}
+
+void state_info_ack_encode(bin_stream_t* strm, server_state_info_ack_t* m)
+{
+	mach_uint32_write(strm, m->sid);
+	mach_data_write(strm, (uint8_t*)m->info, strlen(m->info) + 1);
+}
+
+int	state_info_ack_decode(bin_stream_t* strm, server_state_info_ack_t* m)
+{
+	mach_uint32_read(strm, &(m->sid));
+
+	if(mach_data_read(strm, (uint8_t*)(m->info), STATE_INFO_SIZE) == READ_DATA_ERROR)
+		return -1;
+
+	return 0;
+}
+
+
 
 
 

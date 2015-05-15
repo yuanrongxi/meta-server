@@ -213,7 +213,6 @@ static void cache_weedout(time_t t)
 	cache_item_t* it;
 	cache_item_t* old;
 	uint32_t r, hash;
-	char* k[1024];
 	while(lru_cache->max_size < lru_cache->curr_size){
 		/*先考虑淘汰younger*/
 		it = lru_cache->younger.next;
@@ -239,9 +238,6 @@ static void cache_weedout(time_t t)
 		REC_LOCK(r);
 		delete_item(hash, ITEM_KEY(it), it->ksize);
 		REC_UNLOCK(r);
-
-		memcpy(k, ITEM_KEY(it), it->ksize);
-		k[it->ksize] = 0;
 
 		/*从新获得lru_cache->lock,对it进行释放*/
 		LOCK(&(lru_cache->lock));
@@ -351,4 +347,23 @@ void print_cache()
 	printf("	put count = %ld\n", lru_cache->put_count);
 
 	UNLOCK(&(lru_cache->lock));
+}
+
+int32_t get_cache_info(char* buf)
+{
+	int32_t pos = 0;
+	LOCK(&(lru_cache->lock));
+
+	pos = sprintf(buf, "lru cache: \n");
+	pos += sprintf(buf + pos, "	table size = %u\n", lru_cache->hashpower);
+	pos += sprintf(buf + pos, "	item number = %ld\n", lru_cache->items_number);
+	pos += sprintf(buf + pos, "	max_size = %ld\n", lru_cache->max_size);
+	pos += sprintf(buf + pos, "	curr size = %ld\n", lru_cache->curr_size);
+	pos += sprintf(buf + pos, "	get count = %ld\n", lru_cache->get_count);
+	pos += sprintf(buf + pos, "	miss count = %ld\n", lru_cache->get_count - lru_cache->hit_count);
+	pos += sprintf(buf + pos, "	put count = %ld\n", lru_cache->put_count);
+
+	UNLOCK(&(lru_cache->lock));
+
+	return pos;
 }

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include "cell_pool.h"
 #include "cell_log.h"
@@ -127,10 +128,24 @@ void pool_print(cell_pool_t* pool)
 		printf("cell pool's ptr = NULL!");
 		return;
 	}
-
 	printf("cell pool:\n");
 	printf("\t name = %s\n\tob size = %d\n\tarray size = %d\n\tcurr = %d\n", 
 		pool->name, pool->ob_size, pool->array_size, pool->curr);
+}
+
+int32_t get_pool_info(cell_pool_t* pool, char* buf)
+{
+	int32_t pos = 0;
+	assert(pool != NULL);
+
+	LOCK(&(pool->mutex));
+	
+	pos = sprintf(buf, "%s pool:\n", pool->name);
+	pos += sprintf(buf + pos, "\tob size = %d\n\tarray size = %d\n\tcurr = %d\n", pool->ob_size, pool->array_size, pool->curr);
+
+	UNLOCK(&(pool->mutex));
+
+	return pos;
 }
 
 

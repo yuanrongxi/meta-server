@@ -45,7 +45,7 @@ void destroy_meta_kv(meta_kv_t* meta)
 	meta->free_flag = FREE_NONE;
 }
 
-db_helper_t* create_mysql(const char* host, uint32_t port, const char* user, const char* pwd, const char* db_name)
+db_helper_t* create_mysql(const char* host, uint32_t port, const char* user, const char* pwd, const char* db_name, int seq)
 {
 	db_helper_t* h;
 
@@ -74,6 +74,7 @@ db_helper_t* create_mysql(const char* host, uint32_t port, const char* user, con
 	h->opened = 0;
 	h->busy = 0;
 	h->retry_count = 3;
+	h->seq = seq;
 
 	return h;
 }
@@ -172,7 +173,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d, err = %s", err, mysql_error(&(h->mysql)));
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -226,7 +228,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -275,7 +278,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -321,7 +325,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d, info = %s", err, mysql_error(&(h->mysql)));
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -371,7 +376,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d, info = %s", err, mysql_error(&(h->mysql)));
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -457,7 +463,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -545,7 +552,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(oinfo, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -594,7 +602,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -665,7 +674,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}
@@ -709,7 +719,8 @@ RETRY:
 			else{
 				log_error("mysql error = %d", err);
 				strncpy(info, mysql_error(&(h->mysql)), MAX_INFO_SIZE);
-				close_mysql(h);
+				if(err != 1062)
+					close_mysql(h);
 				return -1;
 			}
 		}

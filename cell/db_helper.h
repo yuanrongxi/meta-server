@@ -48,13 +48,15 @@ typedef struct db_helper_s
 	/*一些常使用的变量*/
 	char*		sql;
 	int32_t		retry_count;
+	/*对应pool的slot序号*/
+	int			seq;
 
 	/*mysql对象*/
 	MYSQL		mysql;
 }db_helper_t;
 
 /*将连接参数放入helper中,并初始化状态*/
-db_helper_t*	create_mysql(const char* host, uint32_t port, const char* user, const char* pwd, const char* db_name);
+db_helper_t*	create_mysql(const char* host, uint32_t port, const char* user, const char* pwd, const char* db_name, int seq);
 /*撤销helper*/
 void			destroy_mysql(db_helper_t* h);
 /*连接并打开mysql数据库*/

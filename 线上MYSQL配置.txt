@@ -1,0 +1,92 @@
+﻿[client]
+port            = 3306
+socket          = /mysql_ssd/data1/data/mysql.sock
+
+
+[mysql]
+max_allowed_packet = 128M
+default-character-set = utf8
+no_auto_rehash
+prompt = "\\R:\\m:\\s \\d> "
+pager = "more"
+
+
+[mysqld]
+port            = 3306
+socket          =  /mysql_ssd/data1/data/mysql.sock
+
+
+character-set-server = utf8 
+key_buffer_size = 10240M
+sort_buffer_size = 8M
+read_buffer_size = 8M
+read_rnd_buffer_size = 16M
+max_allowed_packet = 128M
+myisam_sort_buffer_size=128M
+tmp_table_size=64M
+tmpdir=/data/mysql_tmp
+
+open_files_limit = 60000
+
+skip-name-resolve
+table_open_cache = 3000
+thread_cache_size = 8
+wait_timeout = 86400
+interactive_timeout = 86400
+max_connections = 2500
+
+# Try number of CPU's*2 for innodb_thread_concurrency
+innodb_thread_concurrency = 48
+
+
+server-id=363
+basedir    = /data/mysql
+datadir     = /mysql_ssd/data1/data
+
+
+#log-slave-updates
+sync_binlog = 1
+read_only=1
+relay_log_purge=off
+relay-log = /data/mysql_relay/db-3-63-relay-bin
+relay-log-index = /data/mysql_relay/db-3-63-relay-bin.index
+relay_log_info_file = /data/mysql_relay/relay-log.info
+
+
+log-warnings
+sysdate-is-now
+
+binlog_format = ROW
+log_bin_trust_function_creators=1
+log-bin=/data/mysql_arch/mysql-bin
+
+
+#for innodb options 
+innodb_data_home_dir = /mysql_ssd/data1/data
+innodb_data_file_path = ibdata1:1024M:autoextend
+innodb_log_group_home_dir = /data/mysql_arch
+innodb_log_files_in_group = 3
+innodb_log_file_size = 512M
+
+innodb_buffer_pool_size = 160G
+innodb_log_buffer_size = 512M
+
+innodb_lock_wait_timeout = 100
+innodb_flush_log_at_trx_commit = 2
+
+innodb_locks_unsafe_for_binlog=1
+transaction-isolation = READ-COMMITTED
+
+
+innodb_read_io_threads=16
+innodb-write-io-threads=16
+innodb-io-capacity=3000
+innodb_purge_threads=1
+
+innodb_autoinc_lock_mode=1
+
+innodb_buffer_pool_instances=8
+
+#case-sensitive file names and separate tablespace
+innodb_file_per_table = 1
+lower_case_table_names=1

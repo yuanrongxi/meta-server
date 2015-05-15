@@ -346,7 +346,7 @@ loop:
 	return NULL;
 }
 
-static int	rpc_get_meta(const char* ip, int port, const char* path, const char* pool, int timeout, meta_info_t* info)
+static int rpc_get_meta(const char* ip, int port, const char* path, const char* pool, int timeout, meta_info_t* info)
 {
 	int fd;
 	int ret;

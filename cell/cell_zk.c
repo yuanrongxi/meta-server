@@ -79,7 +79,7 @@ int32_t zk_get_node(const char* path, char* value, int* len)
 int32_t zk_set_node(const char* path, const char* value)
 {
 	if(zk_handle == NULL && zk_init(cell_config->zk_host) == NULL){
-		return 0;
+		return ZCONNECTIONLOSS;
 	}
 
 	return zoo_set(zk_handle, path, value, strlen(value), -1);
@@ -170,7 +170,7 @@ zhandle_t* zk_init(const char* zk_host)
 	zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
 	zk_handle = zookeeper_init(zk_host, zktest_watcher_g, ZK_TIMEOUT, 0, (void *)"metaserver", 0);
 	if (zk_handle == NULL) {
-		log_fatal("init zookeeper failed, host = %s", zk_host);
+		log_fatal("init zookeeper failed, host = %s\n", zk_host);
 		zk_handle = NULL;
 	}
 	else{

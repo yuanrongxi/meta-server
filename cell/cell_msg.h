@@ -11,6 +11,8 @@
 #define USERNAME_SIZE		32
 #define CRPYT_CODE_SIZE		128
 #define MAX_INFO_SIZE		1536
+//10KB
+#define STATE_INFO_SIZE		10240 
 
 /*RPC message*/
 #define TEST_MSG			0x0000
@@ -34,6 +36,10 @@
 #define SET_USER_FLAG_ACK	0x0012
 #define REPLACE_META_VER	0x0013
 #define REPLACE_META_VER_ACK 0x0014
+
+/*查看metaserver的状态信息*/
+#define STATE_INFO			0x1000
+#define STATE_INFO_ACK		0x1001
 
 /*RPC ERROR VALUE*/
 #define NET_SUCC			0
@@ -186,6 +192,18 @@ typedef struct replace_meta_ver_s
 
 typedef add_meta_ack_t replace_meta_ack_t;
 
+
+typedef struct server_state_info_s
+{
+	uint32_t	sid;
+}server_state_info_t;
+
+typedef struct server_state_info_ack_s
+{
+	uint32_t	sid;
+	char		info[STATE_INFO_SIZE];
+}server_state_info_ack_t;
+
 /********************************************************************/
 
 void		encode_msg(bin_stream_t* strm, uint16_t id, void* ptr);
@@ -228,6 +246,12 @@ int			add_log_decode(bin_stream_t* strm, add_log_t* m);
 
 void		replace_meta_encode(bin_stream_t* strm, replace_meta_ver_t* m);
 int			replace_meta_decode(bin_stream_t* strm, replace_meta_ver_t* m);
+
+void		state_info_encode(bin_stream_t* strm, server_state_info_t* m);
+int			state_info_decode(bin_stream_t* strm, server_state_info_t* m);
+
+void		state_info_ack_encode(bin_stream_t* strm, server_state_info_ack_t* m);
+int			state_info_ack_decode(bin_stream_t* strm, server_state_info_ack_t* m);
 
 
 #endif

@@ -33,6 +33,16 @@ int	daemon_run = 0;
 
 #define DAY_SEC		86400
 
+/*分表信息*/
+#define META_TABLE_NUM  10
+const char* meta_tables[META_TABLE_NUM] = {
+	"test_pool", "test_pool", 
+	"test_pool", "test_pool", 
+	"test_pool", "test_pool",
+	"test_pool", "test_pool",
+	"test_pool", "test_pool"
+};
+
 static void handle_pipe(int sig)
 {
 
@@ -136,7 +146,7 @@ static void cell_init(int nthread, uint16_t port, size_t cache_size)
 	}
 
 	/*数据库连接信息应该从配置文件中来*/
-	db_pool = create_db_pool(nthread + 4, cell_config->db_master, cell_config->db_port, cell_config->user, cell_config->passwd, cell_config->db_name);
+	db_pool = create_db_pool(nthread + 8);
 	if(db_pool == NULL){
 		log_fatal("create db pool failed!");
 		exit(-1);
@@ -171,6 +181,15 @@ static void cell_destroy()
 
 	pool_print(strm_pool);
 	pool_destroy(strm_pool);
+}
+
+/*获得分表名*/
+static const char* get_table_name(const char* url)
+{
+	unsigned int hash;
+	hash = murMurHash(url, strlen(url));
+
+	return meta_tables[hash % META_TABLE_NUM];
 }
 
 /*构建一个生命周期的KEY*/
@@ -253,7 +272,7 @@ static void add_meta(handler_t* h, add_meta_t* m)
 
 		kv.value = (char*)(strm->rptr);
 		kv.value_size = strm->used - strm->rsize;
-		if(insert_kv(help, &kv, m->pool, ack.err) == 0){
+		if(insert_kv(help, &kv, get_table_name(kv.key), ack.err) == 0){
 			ack.result = NET_SUCC;
 			strncpy(ack.err, err, MAX_INFO_SIZE);
 			/*update lru_cache*/
@@ -262,9 +281,9 @@ static void add_meta(handler_t* h, add_meta_t* m)
 		else{
 			ack.result = INSERT_FAILED;
 		}
-	}	
 
-	release_helper(db_pool, help);
+		release_helper(db_pool, help);
+	}	
 	pool_free(strm_pool, strm);
 
 	hander_send(h, ADD_META_ACK, &ack);
@@ -302,10 +321,10 @@ static void get_db_meta(db_helper_t* help, const char* key, const char* pool, ge
 			rc = 0;
 		}
 		else
-			rc = get_kv(help, &kv, pool, err);
+			rc = get_kv(help, &kv, get_table_name(kv.key), err);
 	}
 	else
-		rc = get_kv(help, &kv, pool, err);
+		rc = get_kv(help, &kv, get_table_name(kv.key), err);
 
 	if(rc < 0){
 		log_warn("db have not key, key = %s", kv.key);
@@ -371,10 +390,10 @@ static void get_meta(handler_t* h, get_meta_t* m)
 	get_meta_ack_t ack;
 	db_helper_t* help;
 
-	help = get_helper(db_pool);
+	help = get_read_helper(db_pool);
 	if(help != NULL){
 		get_db_meta(help, m->path, m->pool, &ack, 1);
-		release_helper(db_pool, help);
+		release_read_helper(db_pool, help);
 	}
 	else
 		ack.result = NO_DB_HELPER;
@@ -428,7 +447,7 @@ static void update_meta(handler_t* h, update_meta_t* m)
 			kv.value = (char*)(strm->rptr);
 			kv.value_size = strm->used - strm->rsize;
 
-			if(update_kv(help, &kv, m->pool, ack.err) == 0){
+			if(update_kv(help, &kv, get_table_name(kv.key), ack.err) == 0){
 				ack.result = NET_SUCC;
 				strncpy(ack.err, err, MAX_INFO_SIZE);
 				/*update lru_cache*/
@@ -497,7 +516,7 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 			kv.value = (char*)(strm->rptr);
 			kv.value_size = strm->used - strm->rsize;
 
-			if(update_kv(help, &kv, m->pool, ack.err) == 0){
+			if(update_kv(help, &kv, get_table_name(kv.key), ack.err) == 0){
 				char param[MAX_INFO_SIZE];
 
 				ack.result = NET_SUCC;
@@ -520,7 +539,7 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 					kv.key_size = strlen(path_ver);
 					kv.value = (char*)(strm->rptr);
 					kv.value_size = strm->used - strm->rsize;
-					if(replace_kv(help, &kv, m->pool, param) != 0){
+					if(replace_kv(help, &kv, get_table_name(kv.key), param) != 0){
 						log_error("replace kv failed, key = %s", kv.key);
 					}
 				}
@@ -540,7 +559,7 @@ static void replace_meta(handler_t* h, replace_meta_ver_t* m)
 			kv.key_size = strlen(m->path);
 			kv.value = (char*)(strm->rptr);
 			kv.value_size = strm->used - strm->rsize;
-			if(insert_kv(help, &kv, m->pool, ack.err) == 0){ 
+			if(insert_kv(help, &kv, get_table_name(kv.key), ack.err) == 0){ 
 				ack.result = NET_SUCC;
 				strncpy(ack.err, err, MAX_INFO_SIZE);
 				insert_cache((uint8_t*)(kv.key), kv.key_size, (uint8_t*)(kv.value), kv.value_size); /*update lru_cache*/
@@ -573,6 +592,9 @@ static void del_meta(handler_t* h, del_meta_t* m)
 	kv.key = m->path;
 	kv.key_size = strlen(m->path);
 
+	/*将kv从lru cache中删除*/
+	erase_cache((uint8_t*)kv.key, kv.key_size);
+
 	help = get_helper(db_pool);
 	if(help == NULL){
 		ack.result = NO_DB_HELPER;
@@ -580,9 +602,7 @@ static void del_meta(handler_t* h, del_meta_t* m)
 		strncpy(ack.err, err, MAX_INFO_SIZE);
 	}
 	else{
-		/*将kv从lru cache中删除*/
-		erase_cache((uint8_t*)kv.key, kv.key_size);
-		if(delete_kv(help, m->path, strlen(m->path), m->pool, ack.err) != 0)
+		if(delete_kv(help, m->path, strlen(m->path), get_table_name(kv.key), ack.err) != 0)
 			ack.result = DELETE_KV_ERROR;
 		else{
 			ack.result = NET_SUCC;
@@ -721,6 +741,20 @@ static void set_user_flag(handler_t* h, user_flag_t* m)
 	hander_send(h, SET_USER_FLAG_ACK, &ack);
 }
 
+static void cell_state_info(handler_t* h, server_state_info_t* m)
+{
+	int32_t pos = 0;
+	server_state_info_ack_t ack;
+	ack.sid = m->sid;
+
+	pos += get_config_info(ack.info + pos);
+	pos += get_cache_info(ack.info + pos);
+	pos += get_pool_info(handler_pool, ack.info + pos);
+	pos += get_pool_info(strm_pool, ack.info + pos);
+
+	hander_send(h, STATE_INFO_ACK, &ack);
+}
+
 void process(uint16_t msg_id, handler_t* h)
 {
 	switch(msg_id){
@@ -851,6 +885,18 @@ void process(uint16_t msg_id, handler_t* h)
 		}
 		break;
 
+	case STATE_INFO:
+		{
+			server_state_info_t msg;
+			if(state_info_decode(h->rstrm, &msg) != 0){
+				log_error("decode STATE_INFO failed!");
+				return ;
+			}
+
+			cell_state_info(h, &msg);
+		}
+		break;
+
 	default:
 		log_error("unknown message!\n, id = %d\n", msg_id);
 	}
@@ -878,7 +924,7 @@ void connect_zookeeper()
 	h = zk_init(cell_config->zk_host);
 	if(h == NULL){
 		printf("connect zookeeper failed!\n");
-		exit(-1);
+		return ;
 	}
 
 	/*创建一个临时节点，并将数据（ip:port）存入临时节点上*/
@@ -890,7 +936,7 @@ void connect_zookeeper()
 			zk_destroy();
 
 			printf("regist zookeeper failed!, zookeeper host = %s\n", cell_config->zk_host);
-			exit(-1);
+			return ;
 		}
 	}
 }

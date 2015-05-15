@@ -38,7 +38,10 @@ void			close_config();
 
 void			print_config();
 
+int				get_config_info(char* buf);
+
 int				load_zookeeper_host();
+
 
 #endif
 

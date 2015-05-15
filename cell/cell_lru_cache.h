@@ -40,6 +40,8 @@ void				erase_cache(const uint8_t* key, size_t ksize);
 /*¶Ôlru_cacheµÄ´òÓ¡*/
 void				print_cache();
 
+int32_t				get_cache_info(char* buf);
+
 #endif
 
 

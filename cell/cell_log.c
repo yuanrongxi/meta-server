@@ -95,13 +95,33 @@ char* unix_time_2_datetime(int32_t ts, char* date_str, size_t date_size)
 	return date_str;
 }
 
+static char* get_log_rename(int ts, char* date_str, size_t date_size)
+{
+	time_t t = ts;
+	strftime(date_str, date_size, "%Y-%m-%d-%H-%M-%S", localtime(&t));
+	return date_str;
+}
+
 void print_log(int32_t l, const char* file, int32_t line, const char* format, ...)
 {
 	if(log_file.fp != NULL && l < LEVEL_FATAL && l >= 0){
 		char date_str[64] = {0};
-		unix_time_2_datetime(time(NULL), date_str, 64);
 
 		LOCK(&(log_file.mutex));
+
+		if(log_file.count > MAX_LOG_COUNT){
+			char file_name[PATH_MAX_SIZE];
+
+			close_log();
+
+			get_log_rename(time(NULL), date_str, 64);
+			sprintf(file_name, "%s-%s", log_file.filename, date_str);
+			rename(log_file.filename, file_name);
+
+			open_log(log_file.filename, log_file.level);
+		}
+
+		unix_time_2_datetime(time(NULL), date_str, 64);
 
 		fprintf(log_file.fp, "%s %s [%s-%d] ", level_info[l], date_str, log_get_file(file), line);
 		

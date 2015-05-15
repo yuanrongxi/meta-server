@@ -19,7 +19,7 @@ PRIMARY KEY(`meta_key`)
 CREATE TABLE `dfs_user`(
 `user` varchar(64) NOT NULL DEFAULT'',
 `total_size` bigint DEFAULT 107374182400,
-`used_suze` bigint DEFAULT 0,
+`used_size` bigint DEFAULT 0,
 `size_day` bigint DEFAULT 10737418240,
 `used_day` bigint DEFAULT 0,
 `flag` TINYINT DEFAULT 0,
