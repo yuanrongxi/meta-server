@@ -89,6 +89,14 @@ void encode_msg(bin_stream_t* strm, uint16_t id, void* ptr)
 	case REPLACE_META_VER_ACK:
 		ack_encode(strm, (replace_meta_ack_t *)ptr);
 		break;
+
+	case CLEAN_CACHE:
+		clean_cache_encode(strm, (clean_cache_t*)ptr);
+		break;
+
+	case CLEAN_CACHE_ACK:
+		ack_encode(strm, (replace_meta_ack_t *)ptr);
+		break;
 	}
 }
 
@@ -418,6 +426,22 @@ int	replace_meta_decode(bin_stream_t* strm, replace_meta_ver_t* m)
 
 	return 0;
 }
+
+void clean_cache_encode(bin_stream_t* strm, clean_cache_t* m)
+{
+	mach_uint32_write(strm, m->sid);
+	mach_data_write(strm, (uint8_t*)m->path, strlen(m->path) + 1);
+}
+
+int clean_cache_decode(bin_stream_t* strm, clean_cache_t* m)
+{
+	mach_uint32_read(strm, &(m->sid));
+	if(mach_data_read(strm, (uint8_t*)(m->path), MAX_FILE_NAME) == READ_DATA_ERROR)
+		return -1;
+
+	return 0;
+}
+
 
 
 

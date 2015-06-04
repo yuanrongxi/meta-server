@@ -128,5 +128,8 @@
     <ClCompile Include="..\rpc\test.c">
       <Filter>rpc</Filter>
     </ClCompile>
+    <ClCompile Include="cell_spawn_wait.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

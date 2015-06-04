@@ -108,6 +108,7 @@
     <ClCompile Include="cell_pool.c" />
     <ClCompile Include="cell_log.c" />
     <ClCompile Include="cell_zk.c" />
+    <ClCompile Include="cell_spawn_wait.c" />
     <ClCompile Include="db_helper.c" />
     <ClCompile Include="db_pool.c" />
     <ClCompile Include="hash.c" />

@@ -49,7 +49,7 @@ int32_t zk_create_node(const char* path, const char* value, int tmp)
 
 int32_t zk_delete_node(const char* path)
 {
-	if(zk_handle == NULL && zk_init(cell_config->zk_host) == NULL){
+	if(zk_handle == NULL){
 		return 0;
 	}
 
@@ -78,7 +78,7 @@ int32_t zk_get_node(const char* path, char* value, int* len)
 //Ç¿ÖÆ¸²¸Ç
 int32_t zk_set_node(const char* path, const char* value)
 {
-	if(zk_handle == NULL && zk_init(cell_config->zk_host) == NULL){
+	if(zk_handle == NULL){
 		return ZCONNECTIONLOSS;
 	}
 

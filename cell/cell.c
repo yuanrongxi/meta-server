@@ -43,6 +43,9 @@ const char* meta_tables[META_TABLE_NUM] = {
 	"test_pool", "test_pool"
 };
 
+/*spawn wait function*/
+int spawn_and_wait();
+
 static void handle_pipe(int sig)
 {
 
@@ -897,6 +900,24 @@ void process(uint16_t msg_id, handler_t* h)
 		}
 		break;
 
+	case CLEAN_CACHE:
+		{
+			clean_cache_ack_t ack;
+			clean_cache_t msg;
+			if(clean_cache_decode(h->rstrm, &msg) != 0){
+				log_error("decode CLEAN_CACHE failed!");
+				return ;
+			}
+
+			erase_cache((const uint8_t*)(msg.path), strlen(msg.path));
+			ack.result = NET_SUCC;
+			ack.sid = msg.sid;
+			strcpy(ack.err, "");
+
+			hander_send(h, CLEAN_CACHE_ACK, &ack);
+		}
+		break;
+
 	default:
 		log_error("unknown message!\n, id = %d\n", msg_id);
 	}
@@ -960,13 +981,16 @@ void check_zookeeper()
 	sprintf(value, "%s:%d", cell_config->listen_ip, cell_config->listen_port);
 
 	while(daemon_run != 0){
-		if(count % 1000 == 0){ /*每10秒检查一次*/
+		if(count % 2000 == 0){ /*每10秒检查一次*/
 			count = 0;
 			rc = zk_set_node(path, value);
-			if(rc == ZCONNECTIONLOSS || rc == ZOPERATIONTIMEOUT){ /*连接可能断开了*/
+			if(rc < ZOK && rc >= ZINVALIDSTATE){ /*连接可能断开了*/
 				zk_destroy();
+				usleep(1000 * 1000);
+
 				/*重新从YCC载入配置zk地址*/
 				load_zookeeper_host();
+
 				/*再次发起zookeeper的连接*/
 				connect_zookeeper();
 			}
@@ -977,15 +1001,71 @@ void check_zookeeper()
 	}
 }
 
+void daemonize()
+{
+	int fd;
+	if(fork() != 0)
+		exit(0);
+
+	/* create a new session */
+	setsid();
+
+	if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+		dup2(fd, STDIN_FILENO);
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
+
+		if(fd > STDERR_FILENO) 
+			close(fd);
+	}
+}
+
+/*重设进程的title*/
+void set_processor_title(const char* title, char** argv)
+{
+	char* ngx_os_argv_last;
+	int i;
+	size_t len = strlen(title);
+
+	ngx_os_argv_last = argv[0];
+
+	for (i = 0; argv[i]; i++) {
+		if (ngx_os_argv_last == argv[i]) {
+			ngx_os_argv_last = argv[i] + strlen(argv[i]) + 1;
+		}
+	}
+
+	ngx_os_argv_last--;
+
+	argv[1] = NULL;
+	strcpy(argv[0], title);
+	memset(argv[0] + len, 0, ngx_os_argv_last - argv[0] - len);
+}
+
 int main(int argc, const char* argv[])
 {
-
-	if(argc == 2)
+	char** cell_argv = (char**)argv;
+	if(argc == 2){
 		load_config(argv[1]);
-	else
+	} 
+	else{
 		load_config("/etc/cell.conf");
+	}
 
 	print_config();
+
+	/*设置守护进程*/
+	if(cell_config->daemon != 0){
+		/*将本次启动设置为守护进程模式*/
+		daemonize();
+		/*进行进程守护，如果工作进程崩溃，会立即重启*/
+		if(spawn_and_wait() == -1){
+			printf("spawn wait exit!!\n");
+			return 0;
+		}
+
+		set_processor_title("celld: worker process", cell_argv);
+	}
 
 	/*初始化日志*/
 	init_log();
@@ -993,6 +1073,8 @@ int main(int argc, const char* argv[])
 		printf("open log failed!\n");
 		exit(-1);
 	}
+
+	ignore_pipe(SIGPIPE);
 
 	/*add signal callback*/
 	if (signal(SIGTERM, sig_handler) == SIG_ERR)
@@ -1002,6 +1084,7 @@ int main(int argc, const char* argv[])
 	if (signal(SIGINT,  sig_handler) == SIG_ERR)
 		log_warn("can not catch SIGINT");
 
+	zoo_set_debug_level(ZOO_LOG_LEVEL_DEBUG);
 	/*注册ZK*/
 	connect_zookeeper();
 

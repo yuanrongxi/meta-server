@@ -156,6 +156,8 @@ void load_config(const char* config_file)
 			if(cell_config->thread_n == 0)
 				cell_config->thread_n = 2;
 		}
+		else if(strcmp(item.key, "daemon") == 0)
+			cell_config->daemon = atoi(item.value);
 		else if(strcmp(item.key, "name") == 0)
 			strncpy(cell_config->name, item.value, VALUE_SIZE);
 		else if(strcmp(item.key, "server ip") == 0)
@@ -228,6 +230,7 @@ void print_config()
 		return ;
 
 	printf("meta server config:\n");
+	printf("\tdaemon = %d\n", cell_config->daemon);
 	printf("\tthread num = %d\n", cell_config->thread_n);
 	printf("\tserver name = %s\n", cell_config->name);
 	printf("\tserver ip = %s\n", cell_config->listen_ip);
@@ -254,6 +257,7 @@ int get_config_info(char* buf)
 		return pos;
 
 	pos = sprintf(buf, "meta server config:\n");
+	pos += sprintf(buf + pos, "\tdaemon = %d\n", cell_config->daemon);
 	pos += sprintf(buf + pos, "\tthread num = %d\n", cell_config->thread_n);
 	pos += sprintf(buf + pos, "\tserver name = %s\n", cell_config->name);
 	pos += sprintf(buf + pos, "\tserver ip = %s\n", cell_config->listen_ip);
@@ -286,7 +290,7 @@ int load_zookeeper_host()
 
 	FILE* fp;
 	char* line = NULL;
-	size_t len;
+	size_t len = 0;
 	size_t read;
 	conf_item_t item;
 
@@ -310,8 +314,10 @@ int load_zookeeper_host()
 			env.port = atoi(item.value);
 	}
 
-	if(line != NULL)
+	if(line != NULL){
 		free(line);
+		line = NULL;
+	}
 
 	fclose(fp);
 
@@ -320,6 +326,8 @@ int load_zookeeper_host()
 		env.env_domain, env.port, env.env);
 
 	system(url);
+
+	len = 0;
 
 	fp = fopen("./2", "r");
 	if(fp == NULL){

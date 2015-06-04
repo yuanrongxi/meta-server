@@ -15,7 +15,7 @@ static inline void LOCK(int* q)
 		for(i = 0; i < 32; i ++){
 			cpu_pause();
 		}
-		pthread_yield();
+		sched_yield();
 	}
 };
 

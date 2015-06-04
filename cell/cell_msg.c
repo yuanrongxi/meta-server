@@ -90,6 +90,11 @@ void encode_msg(bin_stream_t* strm, uint16_t id, void* ptr)
 		ack_encode(strm, (replace_meta_ack_t *)ptr);
 		break;
 
+
+	case CLEAN_CACHE:
+		clean_cache_encode(strm, (clean_cache_t*)ptr);
+		break;
+
 	case STATE_INFO:
 		state_info_encode(strm, (server_state_info_t*)ptr);
 		break;
@@ -453,6 +458,22 @@ int	state_info_ack_decode(bin_stream_t* strm, server_state_info_ack_t* m)
 
 	return 0;
 }
+
+void clean_cache_encode(bin_stream_t* strm, clean_cache_t* m)
+{
+	mach_uint32_write(strm, m->sid);
+	mach_data_write(strm, (uint8_t*)m->path, strlen(m->path) + 1);
+}
+
+int clean_cache_decode(bin_stream_t* strm, clean_cache_t* m)
+{
+	mach_uint32_read(strm, &(m->sid));
+	if(mach_data_read(strm, (uint8_t*)(m->path), MAX_FILE_NAME) == READ_DATA_ERROR)
+		return -1;
+
+	return 0;
+}
+
 
 
 

@@ -36,6 +36,8 @@
 #define SET_USER_FLAG_ACK	0x0012
 #define REPLACE_META_VER	0x0013
 #define REPLACE_META_VER_ACK 0x0014
+#define CLEAN_CACHE			0x0015
+#define CLEAN_CACHE_ACK		0x0016
 
 /*查看metaserver的状态信息*/
 #define STATE_INFO			0x1000
@@ -192,6 +194,13 @@ typedef struct replace_meta_ver_s
 
 typedef add_meta_ack_t replace_meta_ack_t;
 
+typedef struct clean_cache_s
+{
+	uint32_t	sid;
+	char		path[MAX_FILE_NAME];
+}clean_cache_t;
+
+typedef add_meta_ack_t clean_cache_ack_t;
 
 typedef struct server_state_info_s
 {
@@ -253,6 +262,8 @@ int			state_info_decode(bin_stream_t* strm, server_state_info_t* m);
 void		state_info_ack_encode(bin_stream_t* strm, server_state_info_ack_t* m);
 int			state_info_ack_decode(bin_stream_t* strm, server_state_info_ack_t* m);
 
+void		clean_cache_encode(bin_stream_t* strm, clean_cache_t* m);
+int			clean_cache_decode(bin_stream_t* strm, clean_cache_t* m);
 
 #endif
 

@@ -34,6 +34,7 @@
 #define SET_USER_FLAG_ACK	0x0012
 #define REPLACE_META_VER	0x0013
 #define REPLACE_META_VER_ACK 0x0014
+#define CLEAN_CACHE			0x0015
 
 /*RPC ERROR VALUE*/
 #define NET_SUCC			0
@@ -184,6 +185,12 @@ typedef struct replace_meta_ver_s
 	int32_t		version;				/*被替换文件的版本号，如果 <=0，表示不保存被替换文件的meta信息*/
 }replace_meta_ver_t;
 
+typedef struct clean_cache_s
+{
+	uint32_t	sid;
+	char		path[MAX_FILE_NAME];
+}clean_cache_t;
+
 typedef add_meta_ack_t replace_meta_ack_t;
 
 /********************************************************************/
@@ -228,6 +235,9 @@ int			add_log_decode(bin_stream_t* strm, add_log_t* m);
 
 void		replace_meta_encode(bin_stream_t* strm, replace_meta_ver_t* m);
 int			replace_meta_decode(bin_stream_t* strm, replace_meta_ver_t* m);
+
+void		clean_cache_encode(bin_stream_t* strm, clean_cache_t* m);
+int			clean_cache_decode(bin_stream_t* strm, clean_cache_t* m);
 
 
 #endif

@@ -11,6 +11,7 @@
 
 typedef struct cell_conf_s
 {
+	int			daemon;					/*为0表示后台daemon方式运行*/
 	int			thread_n;				/*线程个数*/
 	char		name[VALUE_SIZE];		/*meta server的名称，node1/node2/node3...,名字不能和其他meta Server重复*/
 	char		listen_ip[VALUE_SIZE];	/*meta server的ip或者域名*/
