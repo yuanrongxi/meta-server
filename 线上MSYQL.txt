@@ -1,7 +1,0 @@
-user:meta_user 
-pwd:Zerok#775
-南汇主库：     	mysql-metadb.int.yihaodian.com
-南汇备库： 	mysql-metadb-slave.int.yihaodian.com
-金桥备库： 	mysql-metadb-slave.jq.int.yihaodian.com
-端口号3306 
-库名：metadb
